@@ -39,13 +39,17 @@ class Map;
 class MapPoint;
 class Frame;
 class KeyFrameDatabase;
-
+/* KeyFrame
+ * 关键帧，和普通的Frame不一样，但是可以由Frame来构造
+ * 许多数据会被三个线程同时访问，所以用锁的地方很普遍
+ */
 class KeyFrame
 {
 public:
     KeyFrame(Frame &F, Map* pMap, KeyFrameDatabase* pKFDB);
 
     // Pose functions
+    // 这里的set,get需要用到锁
     void SetPose(const cv::Mat &Tcw);
     cv::Mat GetPose();
     cv::Mat GetPoseInverse();
@@ -119,14 +123,18 @@ public:
 
     // The following variables are accesed from only 1 thread or never change (no mutex needed).
 public:
-
+    // nNextID名字改为nLastID更合适，表示上一个KeyFrame的ID号
     static long unsigned int nNextId;
+    // 在nNextID的基础上加1就得到了mnID，为当前KeyFrame的ID号
     long unsigned int mnId;
+    // 每个KeyFrame基本属性是它是一个Frame，KeyFrame初始化的时候需要Frame，
+    // mnFrameId记录了该KeyFrame是由哪个Frame初始化的
     const long unsigned int mnFrameId;
 
     const double mTimeStamp;
 
     // Grid (to speed up feature matching)
+    // 和Frame类中的定义相同
     const int mnGridCols;
     const int mnGridRows;
     const float mfGridElementWidthInv;
@@ -137,8 +145,8 @@ public:
     long unsigned int mnFuseTargetForKF;
 
     // Variables used by the local mapping
-    long unsigned int mnBALocalForKF;
-    long unsigned int mnBAFixedForKF;
+    long unsigned int mnBALocalForKF;//记录局部优化id，该数为不断变化，数值等于局部化的关键帧的id
+    long unsigned int mnBAFixedForKF;//同上，只是不优化的关键帧
 
     // Variables used by the keyframe database
     long unsigned int mnLoopQuery;
@@ -160,6 +168,7 @@ public:
     const int N;
 
     // KeyPoints, stereo coordinate and descriptors (all associated by an index)
+    // 和Frame类中的定义相同
     const std::vector<cv::KeyPoint> mvKeys;
     const std::vector<cv::KeyPoint> mvKeysUn;
     const std::vector<float> mvuRight; // negative value for monocular points
@@ -177,8 +186,8 @@ public:
     const int mnScaleLevels;
     const float mfScaleFactor;
     const float mfLogScaleFactor;
-    const std::vector<float> mvScaleFactors;
-    const std::vector<float> mvLevelSigma2;
+    const std::vector<float> mvScaleFactors;// 尺度因子，scale^n，scale=1.2，n为层数
+    const std::vector<float> mvLevelSigma2;// 尺度因子的平方
     const std::vector<float> mvInvLevelSigma2;
 
     // Image bounds and calibration
@@ -209,11 +218,12 @@ protected:
     // Grid over the image to speed up feature matching
     std::vector< std::vector <std::vector<size_t> > > mGrid;
 
-    std::map<KeyFrame*,int> mConnectedKeyFrameWeights;
-    std::vector<KeyFrame*> mvpOrderedConnectedKeyFrames;
-    std::vector<int> mvOrderedWeights;
+    std::map<KeyFrame*,int> mConnectedKeyFrameWeights;///< 与该关键帧连接的关键帧与权重
+    std::vector<KeyFrame*> mvpOrderedConnectedKeyFrames;///< 排序后的关键帧
+    std::vector<int> mvOrderedWeights;///< 排序后的权重(从大到小)
 
     // Spanning Tree and Loop Edges
+    // std::set是集合，相比vector，进行插入数据这样的操作时会自动排序
     bool mbFirstConnection;
     KeyFrame* mpParent;
     std::set<KeyFrame*> mspChildrens;

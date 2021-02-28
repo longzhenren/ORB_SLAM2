@@ -70,12 +70,14 @@ public:
     void UpdatePoseMatrices();
 
     // Returns the camera center.
-    inline cv::Mat GetCameraCenter(){
+    inline cv::Mat GetCameraCenter()
+    {
         return mOw.clone();
     }
 
     // Returns inverse of rotation
-    inline cv::Mat GetRotationInverse(){
+    inline cv::Mat GetRotationInverse()
+    {
         return mRwc.clone();
     }
 
@@ -114,15 +116,15 @@ public:
     static float fy;
     static float cx;
     static float cy;
-    static float invfx;
-    static float invfy;
-    cv::Mat mDistCoef;
+    static float invfx;// 1/fx
+    static float invfy;// 1/fy
+    cv::Mat mDistCoef;//畸变矩阵
 
     // Stereo baseline multiplied by fx.
-    float mbf;
+    float mbf;//b*f
 
     // Stereo baseline in meters.
-    float mb;
+    float mb;//b
 
     // Threshold close/far points. Close points are inserted from 1 view.
     // Far points are inserted as in the monocular case from 2 views.
@@ -134,6 +136,9 @@ public:
     // Vector of keypoints (original for visualization) and undistorted (actually used by the system).
     // In the stereo case, mvKeysUn is redundant as images must be rectified.
     // In the RGB-D case, RGB images can be distorted.
+    // mvKeys:原始左图像提取出的特征点（未校正）
+    // mvKeysRight:原始右图像提取出的特征点（未校正）
+    // mvKeysUn:校正mvKeys后的特征点，对于双目摄像头，一般得到的图像都是校正好的，再校正一次有点多余
     std::vector<cv::KeyPoint> mvKeys, mvKeysRight;
     std::vector<cv::KeyPoint> mvKeysUn;
 
@@ -153,26 +158,31 @@ public:
     std::vector<MapPoint*> mvpMapPoints;
 
     // Flag to identify outlier associations.
+    // 观测不到Map中的3D点
     std::vector<bool> mvbOutlier;
 
     // Keypoints are assigned to cells in a grid to reduce matching complexity when projecting MapPoints.
+    // 坐标乘以mfGridElementWidthInv和mfGridElementHeightInv就可以确定在哪个格子
     static float mfGridElementWidthInv;
     static float mfGridElementHeightInv;
+    // 每个格子分配的特征点数，将图像分成格子，保证提取的特征点比较均匀
+    // FRAME_GRID_ROWS 48
+    // FRAME_GRID_COLS 64
     std::vector<std::size_t> mGrid[FRAME_GRID_COLS][FRAME_GRID_ROWS];
 
     // Camera pose.
-    cv::Mat mTcw;
+    cv::Mat mTcw;///< 相机姿态 世界坐标系到相机坐标坐标系的变换矩阵
 
     // Current and Next Frame id.
     static long unsigned int nNextId;
-    long unsigned int mnId;
+    long unsigned int mnId;///< Current Frame id.
 
     // Reference Keyframe.
-    KeyFrame* mpReferenceKF;
+    KeyFrame* mpReferenceKF;//指针，指向参考关键帧
 
     // Scale pyramid info.
-    int mnScaleLevels;
-    float mfScaleFactor;
+    int mnScaleLevels;//图像提金字塔的层数
+    float mfScaleFactor;//图像提金字塔的尺度因子
     float mfLogScaleFactor;
     vector<float> mvScaleFactors;
     vector<float> mvInvScaleFactors;
@@ -180,6 +190,7 @@ public:
     vector<float> mvInvLevelSigma2;
 
     // Undistorted Image Bounds (computed once).
+    // 用于确定画格子时的边界
     static float mnMinX;
     static float mnMaxX;
     static float mnMinY;

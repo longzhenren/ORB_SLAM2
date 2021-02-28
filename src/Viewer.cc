@@ -140,6 +140,7 @@ void Viewer::Run()
 
         if(menuReset)
         {
+            
             menuShowGraph = true;
             menuShowKeyFrames = true;
             menuShowPoints = true;

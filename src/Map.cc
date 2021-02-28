@@ -28,7 +28,10 @@ namespace ORB_SLAM2
 Map::Map():mnMaxKFid(0),mnBigChangeIdx(0)
 {
 }
-
+/**
+ * @brief Insert KeyFrame in the map
+ * @param pKF KeyFrame
+ */
 void Map::AddKeyFrame(KeyFrame *pKF)
 {
     unique_lock<mutex> lock(mMutexMap);
@@ -36,13 +39,19 @@ void Map::AddKeyFrame(KeyFrame *pKF)
     if(pKF->mnId>mnMaxKFid)
         mnMaxKFid=pKF->mnId;
 }
-
+/**
+ * @brief Insert MapPoint in the map
+ * @param pMP MapPoint
+ */
 void Map::AddMapPoint(MapPoint *pMP)
 {
     unique_lock<mutex> lock(mMutexMap);
     mspMapPoints.insert(pMP);
 }
-
+/**
+ * @brief Erase MapPoint from the map
+ * @param pMP MapPoint
+ */
 void Map::EraseMapPoint(MapPoint *pMP)
 {
     unique_lock<mutex> lock(mMutexMap);
@@ -51,7 +60,10 @@ void Map::EraseMapPoint(MapPoint *pMP)
     // TODO: This only erase the pointer.
     // Delete the MapPoint
 }
-
+/**
+ * @brief Erase KeyFrame from the map
+ * @param pKF KeyFrame
+ */
 void Map::EraseKeyFrame(KeyFrame *pKF)
 {
     unique_lock<mutex> lock(mMutexMap);
@@ -60,7 +72,10 @@ void Map::EraseKeyFrame(KeyFrame *pKF)
     // TODO: This only erase the pointer.
     // Delete the MapPoint
 }
-
+/**
+ * @brief 设置参考MapPoints，将用于DrawMapPoints函数画图
+ * @param vpMPs Local MapPoints
+ */
 void Map::SetReferenceMapPoints(const vector<MapPoint *> &vpMPs)
 {
     unique_lock<mutex> lock(mMutexMap);
@@ -82,13 +97,13 @@ int Map::GetLastBigChangeIdx()
 vector<KeyFrame*> Map::GetAllKeyFrames()
 {
     unique_lock<mutex> lock(mMutexMap);
-    return vector<KeyFrame*>(mspKeyFrames.begin(),mspKeyFrames.end());
+    return vector<KeyFrame*>(mspKeyFrames.begin(),mspKeyFrames.end());//std::set<KeyFrame*> mspKeyFrames;
 }
 
 vector<MapPoint*> Map::GetAllMapPoints()
 {
     unique_lock<mutex> lock(mMutexMap);
-    return vector<MapPoint*>(mspMapPoints.begin(),mspMapPoints.end());
+    return vector<MapPoint*>(mspMapPoints.begin(),mspMapPoints.end());//
 }
 
 long unsigned int Map::MapPointsInMap()

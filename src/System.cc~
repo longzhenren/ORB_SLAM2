@@ -510,12 +510,5 @@ vector<cv::KeyPoint> System::GetTrackedKeyPointsUn()
     unique_lock<mutex> lock(mMutexState);
     return mTrackedKeyPointsUn;
 }
-void System::save()
-{
-    mpPointCloudMapping->save();
-}
-int System::getloopcount()
-{
-    return mpLoopCloser->loopcount;
-}
+
 } //namespace ORB_SLAM

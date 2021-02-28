@@ -27,7 +27,7 @@
 #include "Optimizer.h"
 
 #include "ORBmatcher.h"
-#include "pointcloudmapping.h"
+
 #include<mutex>
 #include<thread>
 
@@ -35,9 +35,8 @@
 namespace ORB_SLAM2
 {
 
-LoopClosing::LoopClosing(Map *pMap, KeyFrameDatabase *pDB, ORBVocabulary *pVoc, const bool bFixScale,shared_ptr<PointCloudMapping> pPointCloud):
+LoopClosing::LoopClosing(Map *pMap, KeyFrameDatabase *pDB, ORBVocabulary *pVoc, const bool bFixScale):
     mbResetRequested(false), mbFinishRequested(false), mbFinished(true), mpMap(pMap),
-    mpPointCloudMapping( pPointCloud ),
     mpKeyFrameDB(pDB), mpORBVocabulary(pVoc), mpMatchedKF(NULL), mLastLoopKFid(0), mbRunningGBA(false), mbFinishedGBA(true),
     mbStopGBA(false), mpThreadGBA(NULL), mbFixScale(bFixScale), mnFullBAIdx(0)
 {
@@ -139,11 +138,9 @@ bool LoopClosing::DetectLoop()
     }
 
     // Query the database imposing the minimum score
-    //根据最小score 计算出相连的候选关键帧们（候选关键帧是以前的帧）
     vector<KeyFrame*> vpCandidateKFs = mpKeyFrameDB->DetectLoopCandidates(mpCurrentKF, minScore);
 
     // If there are no loop candidates, just add new keyframe and return false
-    //若无，则向mpKeyFrameDB添加关键帧，清除mvConsistentGroups，并可删除mpCurrentKF->SetErase()
     if(vpCandidateKFs.empty())
     {
         mpKeyFrameDB->add(mpCurrentKF);
@@ -157,10 +154,9 @@ bool LoopClosing::DetectLoop()
     // A group is consistent with a previous group if they share at least a keyframe
     // We must detect a consistent loop in several consecutive keyframes to accept it
     mvpEnoughConsistentCandidates.clear();
-    //计算连续性
+
     vector<ConsistentGroup> vCurrentConsistentGroups;
     vector<bool> vbConsistentGroup(mvConsistentGroups.size(),false);
-    //循环计算每一个候选关键帧vpCandidateKFs的与其相连的关键帧，存入spCandidateGroup
     for(size_t i=0, iend=vpCandidateKFs.size(); i<iend; i++)
     {
         KeyFrame* pCandidateKF = vpCandidateKFs[i];
@@ -170,7 +166,6 @@ bool LoopClosing::DetectLoop()
 
         bool bEnoughConsistent = false;
         bool bConsistentForSomeGroup = false;
-        //循环连续组（mvConsistentGroups），连续组由每个候选关键帧们组成，
         for(size_t iG=0, iendG=mvConsistentGroups.size(); iG<iendG; iG++)
         {
             set<KeyFrame*> sPreviousGroup = mvConsistentGroups[iG].first;
@@ -178,23 +173,20 @@ bool LoopClosing::DetectLoop()
             bool bConsistent = false;
             for(set<KeyFrame*>::iterator sit=spCandidateGroup.begin(), send=spCandidateGroup.end(); sit!=send;sit++)
             {
-                //计算每一个”候选关键帧们“中是否存有“当前候选关键帧们”其中一个
                 if(sPreviousGroup.count(*sit))
-                {  //获取存有“当前候选关键帧们”其中一个的”候选关键帧们“的第二个参数，连续性参数
+                {
                     bConsistent=true;
                     bConsistentForSomeGroup=true;
                     break;
                 }
             }
-            //如果存在则代表候选关键帧们互相具有连续性
+
             if(bConsistent)
             {
                 int nPreviousConsistency = mvConsistentGroups[iG].second;
                 int nCurrentConsistency = nPreviousConsistency + 1;
                 if(!vbConsistentGroup[iG])
                 {
-                    //若当前一个的”候选关键帧们“没有添加过：将“当前候选关键帧们”存入vCurrentConsistentGroups，
-                    //二个参数代表他与之前候选帧相连过
                     ConsistentGroup cg = make_pair(spCandidateGroup,nCurrentConsistency);
                     vCurrentConsistentGroups.push_back(cg);
                     vbConsistentGroup[iG]=true; //this avoid to include the same group more than once
@@ -653,7 +645,7 @@ void LoopClosing::ResetIfRequested()
 void LoopClosing::RunGlobalBundleAdjustment(unsigned long nLoopKF)
 {
     cout << "Starting Global Bundle Adjustment" << endl;
-    mpPointCloudMapping->loopbusy = true;
+
     int idx =  mnFullBAIdx;
     Optimizer::GlobalBundleAdjustemnt(mpMap,10,&mbStopGBA,nLoopKF,false);
 
@@ -747,12 +739,8 @@ void LoopClosing::RunGlobalBundleAdjustment(unsigned long nLoopKF)
             mpMap->InformNewBigChange();
 
             mpLocalMapper->Release();
-            loopcount++;
-            while(loopcount!=mpPointCloudMapping->loopcount)
-                      mpPointCloudMapping->updatecloud();
-             cout<<"mpPointCloudMapping->loopcount="<<mpPointCloudMapping->loopcount<<endl;
+
             cout << "Map updated!" << endl;
-            //mpPointCloudMapping->loopbusy = true;
         }
 
         mbFinishedGBA = true;
